@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-# Собирает установочный пакет: dist/plg_content_timealias_<версия>.zip
-# Версия берётся из timealias.xml — править её нужно только там.
+# Builds the release archives · Собирает архивы релиза:
+#   dist/plg_content_timealias_<version>.zip            — installer package · пакет для установщика
+#   dist/plg_content_timealias_<version>_site-root.zip  — unpack into the Joomla root · распаковать в корень Joomla
+# The version is read from timealias.xml · Версия берётся из timealias.xml.
 set -euo pipefail
 cd "$(dirname "$0")"
+
 version=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' timealias.xml)
-out="dist/plg_content_timealias_${version}.zip"
+files=(timealias.xml services src language)
+pkg="dist/plg_content_timealias_${version}.zip"
+root="dist/plg_content_timealias_${version}_site-root.zip"
+
 mkdir -p dist
-rm -f "$out"
-zip -qrX "$out" timealias.xml services src language
-echo "$out"
+rm -f "$pkg" "$root"
+zip -qrX "$pkg" "${files[@]}"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+mkdir -p "$tmp/plugins/content/timealias"
+cp -r "${files[@]}" "$tmp/plugins/content/timealias/"
+(cd "$tmp" && zip -qrX "$OLDPWD/$root" plugins)
+
+echo "$pkg"
+echo "$root"
